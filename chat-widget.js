@@ -240,12 +240,18 @@
 
       // 3. Send to Webhook
       try {
+        // FIX for 500 ERROR: Clean History
+        const cleanHistory = messages.map(msg => ({
+            role: msg.sender === 'user' ? 'user' : 'assistant',
+            content: msg.text
+        }));
+
         const payload = {
             message: text,
-            chatInput: text, // Redundancy for n8n compatibility
+            chatInput: text, 
             input: text,
-            query: text,
-            history: messages,
+            question: text,
+            history: cleanHistory, // Simplified history
             sessionId: sessionId
         };
 
@@ -258,10 +264,14 @@
           body: JSON.stringify(payload)
         });
         
+        if (!res.ok) {
+            throw new Error(`Server error ${res.status}`);
+        }
+
         const data = await res.json();
         console.log('n8n Response Debug:', data); 
         
-        // Robust Response Parsing Helper
+        // Robust Response Parsing Helper (Recursive)
         const findText = (d) => {
             if (!d) return null;
             if (typeof d === 'string') return d;
@@ -273,6 +283,14 @@
                 if (d.json) return findText(d.json);
                 const objKeys = Object.keys(d);
                 if (objKeys.length === 1 && typeof d[objKeys[0]] === 'string') return d[objKeys[0]];
+                
+                // Deep recursive search
+                for (const k of objKeys) {
+                    if (typeof d[k] === 'object') {
+                        const found = findText(d[k]);
+                        if (found) return found;
+                    }
+                }
             }
             return null;
         };
