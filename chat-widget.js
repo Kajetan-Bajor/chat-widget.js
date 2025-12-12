@@ -2,7 +2,9 @@
 (function() {
   // Sprawdzamy czy konfiguracja istnieje
   const config = window.AtlasChatConfig || {};
-  const WEBHOOK_URL = config.webhookUrl;
+  
+  // URL Webhooka
+  const WEBHOOK_URL = config.webhookUrl || 'https://kajetanbajor.app.n8n.cloud/webhook/13ad05b6-e321-45c4-8f6c-bf95c3a3aeb4/chat';
 
   if (!WEBHOOK_URL) {
     console.error('Atlas Chat: Brak skonfigurowanego Webhook URL!');
@@ -74,17 +76,19 @@
     // Stan
     let isOpen = false;
     let hasStarted = false;
+    // Generowanie unikalnego ID sesji, jeśli nie istnieje
+    const sessionId = localStorage.getItem('chat_session_id') || `sess_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('chat_session_id', sessionId);
+
     let messages = [
       { id: '1', sender: 'bot', text: 'Cześć, jestem Atlas, jak mogę ci dzisiaj pomóc?' }
     ];
 
     // HTML Template
-    // Biała ikona na ciemne tło (dla avatara i launchera)
     const logoUrl = 'https://static.wixstatic.com/shapes/d25ad0_80658c34187f4d3e802abc8225fc5bff.svg';
-    // Logo Zyne.chat do stopki
     const zyneLogo = 'https://static.wixstatic.com/shapes/d25ad0_9984db4a72dd458790e546ab1b714ebd.svg';
 
-    const render = () => {
+    const render = (shouldFocusInput = false) => {
       widgetContainer.innerHTML = `
         <!-- Launcher -->
         <button id="atlas-launcher" class="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-onyx text-white shadow-lg flex items-center justify-center hover:scale-105 hover:bg-onyx-light z-[99999] transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isOpen ? 'opacity-0 scale-0 pointer-events-none rotate-90' : 'opacity-100 scale-100 pointer-events-auto rotate-0'}">
@@ -151,7 +155,7 @@
               </button>
             ` : `
               <div class="relative flex items-center bg-white rounded-xl shadow-sm border border-gray-200 focus-within:ring-2 focus-within:ring-gray-200 transition-all">
-                <input id="atlas-input" type="text" placeholder="Napisz wiadomość..." class="w-full py-3.5 pl-4 pr-12 bg-transparent outline-none text-gray-800 placeholder-gray-400 text-base sm:text-sm" />
+                <input id="atlas-input" type="text" placeholder="Napisz wiadomość..." autocomplete="off" class="w-full py-3.5 pl-4 pr-12 bg-transparent outline-none text-gray-800 placeholder-gray-400 text-base sm:text-sm" />
                 <button id="atlas-send" class="absolute right-3 p-2 text-onyx hover:bg-gray-100 rounded-lg transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" /></svg>
                 </button>
@@ -166,14 +170,14 @@
         </div>
       `;
 
-      bindEvents();
+      bindEvents(shouldFocusInput);
     };
 
-    const bindEvents = () => {
+    const bindEvents = (shouldFocusInput) => {
       // Launcher
       const launcher = document.getElementById('atlas-launcher');
       if (launcher) {
-         launcher.onclick = () => { isOpen = true; render(); setTimeout(scrollToBottom, 100); };
+         launcher.onclick = () => { isOpen = true; render(true); setTimeout(scrollToBottom, 100); };
       }
 
       // Close
@@ -187,12 +191,7 @@
       if (startBtn) {
         startBtn.onclick = () => { 
             hasStarted = true; 
-            render(); 
-            // Focus input after render
-            setTimeout(() => {
-                const input = document.getElementById('atlas-input');
-                if (input) input.focus();
-            }, 100);
+            render(true); // Render with focus
         };
       }
 
@@ -201,12 +200,9 @@
       const sendBtn = document.getElementById('atlas-send');
 
       if (input) {
-        // Keep focus if we just re-rendered with input open
-        if (isOpen && hasStarted) {
-             // Jeśli input stracił focus przez render, przywróć go (chyba że użytkownik kliknął gdzie indziej, ale render jest szybki)
-             // W prostej wersji JS re-render niszczy DOM, więc input traci focus.
-             // Focusujemy go manualnie.
-             input.focus();
+        // Focus management
+        if (shouldFocusInput && isOpen) {
+            setTimeout(() => input.focus(), 50);
         }
 
         input.onkeydown = (e) => { 
@@ -232,38 +228,71 @@
 
       // 1. Add User Message
       messages.push({ id: Date.now(), sender: 'user', text });
-      // Render immediately to show user message
-      render();
+      
+      // Render immediately with input cleared but focused
+      render(true);
       setTimeout(scrollToBottom, 50);
 
-      // 2. Show Typing
+      // 2. Show Typing Indicator
       const typingEl = document.getElementById('atlas-typing');
       if(typingEl) typingEl.classList.remove('hidden');
       scrollToBottom();
 
       // 3. Send to Webhook
       try {
+        const payload = {
+            message: text,
+            chatInput: text, // Redundancy for n8n compatibility
+            input: text,
+            query: text,
+            history: messages,
+            sessionId: sessionId
+        };
+
         const res = await fetch(WEBHOOK_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: text,
-            history: messages,
-            sessionId: localStorage.getItem('chat_session_id') || `sess_${Math.random().toString(36).substr(2, 9)}`
-          })
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json' 
+          },
+          body: JSON.stringify(payload)
         });
         
         const data = await res.json();
-        const reply = data.text || data.message || data.output || 'Błąd odpowiedzi.';
+        console.log('n8n Response Debug:', data); 
+        
+        // Robust Response Parsing Helper
+        const findText = (d) => {
+            if (!d) return null;
+            if (typeof d === 'string') return d;
+            if (Array.isArray(d)) return d.length > 0 ? findText(d[0]) : null;
+            if (typeof d === 'object') {
+                const keys = ['output', 'text', 'message', 'answer', 'response', 'reply', 'content', 'result'];
+                for (const k of keys) if (d[k] && typeof d[k] === 'string') return d[k];
+                if (d.data) return findText(d.data);
+                if (d.json) return findText(d.json);
+                const objKeys = Object.keys(d);
+                if (objKeys.length === 1 && typeof d[objKeys[0]] === 'string') return d[objKeys[0]];
+            }
+            return null;
+        };
+
+        let reply = findText(data);
+
+        if (!reply) {
+            reply = 'Przepraszam, ale nie otrzymałem poprawnej odpowiedzi od serwera.';
+            console.warn('Otrzymano pustą odpowiedź lub nieobsługiwany format:', data);
+        }
         
         messages.push({ id: Date.now(), sender: 'bot', text: reply });
+
       } catch (e) {
-        console.error(e);
+        console.error('Błąd połączenia:', e);
         messages.push({ id: Date.now(), sender: 'bot', text: 'Przepraszamy, wystąpił problem z połączeniem.' });
       }
 
       // 4. Update UI with response
-      render();
+      render(true); // Re-render and focus input
       setTimeout(scrollToBottom, 50);
     };
 
