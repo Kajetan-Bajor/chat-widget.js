@@ -1,5 +1,7 @@
 
 (function() {
+  console.log("Atlas Chat Widget v2.0 Loaded"); // Debugging Log
+
   // Sprawdzamy czy konfiguracja istnieje
   const config = window.AtlasChatConfig || {};
   
