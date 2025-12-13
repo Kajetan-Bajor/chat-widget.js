@@ -1,6 +1,6 @@
 
 (function() {
-  console.log("%c Atlas Chat Widget v5.0 Loaded ", "background: #111; color: #bada55"); // Debug Log
+  console.log("%c Atlas Chat Widget v6.0 (New File) Loaded ", "background: #111; color: #00ff00"); // Distinct Log
 
   // Sprawdzamy czy konfiguracja istnieje
   const config = window.AtlasChatConfig || {};
@@ -36,7 +36,6 @@
             fontFamily: { sans: ['Inter', 'sans-serif'] },
             colors: { onyx: { DEFAULT: '#111111', light: '#353535' } },
             boxShadow: { 'soft': '0 4px 20px rgba(0, 0, 0, 0.08)' }
-            // Usunęliśmy keyframes stąd, bo są teraz w CSS na dole
           }
         }
       };
@@ -54,7 +53,7 @@
     // Zapobieganie podwójnemu ładowaniu
     if (document.getElementById('atlas-widget-root')) return;
 
-    // Style CSS - Definiujemy animacje "na sztywno", żeby działały na Wix bez JIT Tailwinda
+    // Style CSS - Definiujemy animacje "na sztywno" w CSS, aby działały niezależnie od ładowania Tailwinda
     const style = document.createElement('style');
     style.innerHTML = `
       .atlas-no-scrollbar::-webkit-scrollbar { display: none; }
@@ -84,7 +83,7 @@
     // Stan
     let isOpen = false;
     let hasStarted = false;
-    // Generowanie unikalnego ID sesji, jeśli nie istnieje
+    // Generowanie unikalnego ID sesji
     const sessionId = localStorage.getItem('chat_session_id') || `sess_${Math.random().toString(36).substr(2, 9)}`;
     localStorage.setItem('chat_session_id', sessionId);
 
@@ -248,15 +247,12 @@
 
       // 3. Send to Webhook
       try {
-        // FIX for "Error in workflow":
-        // DO NOT SEND HISTORY. n8n AI Agent uses sessionId for memory.
         const payload = {
             message: text,
             chatInput: text, 
             input: text,
             question: text,
             sessionId: sessionId
-            // NO HISTORY ARRAY HERE
         };
 
         const res = await fetch(WEBHOOK_URL, {
@@ -273,9 +269,7 @@
         }
 
         const data = await res.json();
-        console.log('n8n Response Debug:', data); 
         
-        // Robust Response Parsing Helper (Recursive)
         const findText = (d) => {
             if (!d) return null;
             if (typeof d === 'string') return d;
@@ -288,7 +282,6 @@
                 const objKeys = Object.keys(d);
                 if (objKeys.length === 1 && typeof d[objKeys[0]] === 'string') return d[objKeys[0]];
                 
-                // Deep recursive search
                 for (const k of objKeys) {
                     if (typeof d[k] === 'object') {
                         const found = findText(d[k]);
@@ -301,7 +294,6 @@
 
         let reply = findText(data);
 
-        // Specific Handler for n8n Error String
         if (reply === 'Error in workflow') {
              console.error('n8n returned "Error in workflow". Check your n8n log.');
              reply = 'Przepraszamy, wystąpił problem po stronie serwera.';
@@ -309,7 +301,6 @@
 
         if (!reply) {
             reply = 'Przepraszam, ale nie otrzymałem poprawnej odpowiedzi od serwera.';
-            console.warn('Otrzymano pustą odpowiedź lub nieobsługiwany format:', data);
         }
         
         messages.push({ id: Date.now(), sender: 'bot', text: reply });
