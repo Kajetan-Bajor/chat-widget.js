@@ -1,6 +1,6 @@
 
 (function() {
-  console.log("Atlas Chat Widget v2.0 Loaded"); // Debugging Log
+  console.log("%c Atlas Chat Widget v5.0 Loaded ", "background: #111; color: #bada55"); // Debug Log
 
   // Sprawdzamy czy konfiguracja istnieje
   const config = window.AtlasChatConfig || {};
@@ -35,16 +35,8 @@
           extend: {
             fontFamily: { sans: ['Inter', 'sans-serif'] },
             colors: { onyx: { DEFAULT: '#111111', light: '#353535' } },
-            boxShadow: { 'soft': '0 4px 20px rgba(0, 0, 0, 0.08)' },
-            keyframes: {
-              'fade-in-up': {
-                '0%': { opacity: '0', transform: 'translateY(10px) scale(0.98)' },
-                '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
-              }
-            },
-            animation: {
-              'fade-in-up': 'fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-            }
+            boxShadow: { 'soft': '0 4px 20px rgba(0, 0, 0, 0.08)' }
+            // Usunęliśmy keyframes stąd, bo są teraz w CSS na dole
           }
         }
       };
@@ -62,11 +54,25 @@
     // Zapobieganie podwójnemu ładowaniu
     if (document.getElementById('atlas-widget-root')) return;
 
-    // Style CSS dla scrollbara
+    // Style CSS - Definiujemy animacje "na sztywno", żeby działały na Wix bez JIT Tailwinda
     const style = document.createElement('style');
     style.innerHTML = `
       .atlas-no-scrollbar::-webkit-scrollbar { display: none; }
       .atlas-no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      
+      /* Animacja pojawiania się wiadomości */
+      @keyframes atlas-fade-in-up {
+        0% { opacity: 0; transform: translateY(10px) scale(0.98); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      .animate-fade-in-up {
+        animation: atlas-fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+      }
+
+      /* Animacja sprężysta otwierania okna */
+      .atlas-spring {
+        transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+      }
     `;
     document.head.appendChild(style);
 
@@ -93,12 +99,12 @@
     const render = (shouldFocusInput = false) => {
       widgetContainer.innerHTML = `
         <!-- Launcher -->
-        <button id="atlas-launcher" class="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-onyx text-white shadow-lg flex items-center justify-center hover:scale-105 hover:bg-onyx-light z-[99999] transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isOpen ? 'opacity-0 scale-0 pointer-events-none rotate-90' : 'opacity-100 scale-100 pointer-events-auto rotate-0'}">
+        <button id="atlas-launcher" class="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-onyx text-white shadow-lg flex items-center justify-center hover:scale-105 hover:bg-onyx-light z-[99999] transition-all duration-500 atlas-spring ${isOpen ? 'opacity-0 scale-0 pointer-events-none rotate-90' : 'opacity-100 scale-100 pointer-events-auto rotate-0'}">
           <img src="${logoUrl}" alt="Chat" class="w-7 h-7 object-contain" />
         </button>
 
         <!-- Window -->
-        <div id="atlas-window" class="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[400px] sm:h-[700px] bg-gray-50 sm:rounded-[32px] shadow-2xl overflow-hidden z-[99999] flex flex-col font-sans border border-gray-100 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-bottom-right ${isOpen ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto visible' : 'opacity-0 scale-95 translate-y-12 sm:translate-y-10 pointer-events-none invisible'}">
+        <div id="atlas-window" class="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[400px] sm:h-[700px] bg-gray-50 sm:rounded-[32px] shadow-2xl overflow-hidden z-[99999] flex flex-col font-sans border border-gray-100 transition-all duration-500 atlas-spring origin-bottom-right ${isOpen ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto visible' : 'opacity-0 scale-95 translate-y-12 sm:translate-y-10 pointer-events-none invisible'}">
           
           <!-- Header -->
           <div class="flex items-center justify-between p-4 bg-white border-b border-gray-100 sm:rounded-t-[32px]">
@@ -242,19 +248,15 @@
 
       // 3. Send to Webhook
       try {
-        // FIX for 500 ERROR: Clean History
-        const cleanHistory = messages.map(msg => ({
-            role: msg.sender === 'user' ? 'user' : 'assistant',
-            content: msg.text
-        }));
-
+        // FIX for "Error in workflow":
+        // DO NOT SEND HISTORY. n8n AI Agent uses sessionId for memory.
         const payload = {
             message: text,
             chatInput: text, 
             input: text,
             question: text,
-            history: cleanHistory, // Simplified history
             sessionId: sessionId
+            // NO HISTORY ARRAY HERE
         };
 
         const res = await fetch(WEBHOOK_URL, {
@@ -298,6 +300,12 @@
         };
 
         let reply = findText(data);
+
+        // Specific Handler for n8n Error String
+        if (reply === 'Error in workflow') {
+             console.error('n8n returned "Error in workflow". Check your n8n log.');
+             reply = 'Przepraszamy, wystąpił problem po stronie serwera.';
+        }
 
         if (!reply) {
             reply = 'Przepraszam, ale nie otrzymałem poprawnej odpowiedzi od serwera.';
