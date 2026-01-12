@@ -1,7 +1,7 @@
 
 (function() {
-  // Atlas Chat Widget v7.3 (No Gradient + Smooth Animations)
-  console.log("Atlas Chat Widget v7.3 Loaded");
+  // Atlas Chat Widget v7.4 (Fix Page Scroll Issue)
+  console.log("Atlas Chat Widget v7.4 Loaded");
 
   const config = window.AtlasChatConfig || {};
   const WEBHOOK_URL = config.webhookUrl || 'https://n8n.srv1248886.hstgr.cloud/webhook/4091fa09-fb9a-4039-9411-7104d213f601/chat';
@@ -93,11 +93,14 @@
         });
     };
 
+    // FIX: Use scrollTo instead of scrollIntoView to prevent body scroll
     const scrollToBottom = () => {
       const container = document.getElementById('atlas-messages-container');
-      const bottom = document.getElementById('atlas-bottom');
-      if (container && bottom) {
-        bottom.scrollIntoView({ behavior: 'smooth' });
+      if (container) {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: 'smooth'
+        });
       }
     };
 
@@ -113,7 +116,7 @@
         <!-- Main Window -->
         <div id="atlas-window" class="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[400px] h-[100dvh] sm:h-[calc(100vh-2rem)] sm:max-h-[700px] bg-gray-50 sm:rounded-[32px] shadow-2xl overflow-hidden z-[99999] flex flex-col font-sans border border-gray-100 transition-all duration-500 atlas-spring origin-bottom-right opacity-0 scale-95 translate-y-12 invisible pointer-events-none">
           
-          <!-- Header: Solid White, Sticky, No Gradient -->
+          <!-- Header -->
           <div class="flex items-center justify-between p-4 bg-white border-b border-gray-100 sm:rounded-t-[32px] sticky top-0 z-20">
               <div class="flex items-center space-x-3">
                 <div class="relative">
@@ -143,7 +146,7 @@
                   </div>
                </div>
             </div>
-            <div id="atlas-bottom"></div>
+            <!-- Removed bottom anchor div as we scroll container directly now -->
           </div>
 
           <!-- Footer -->
@@ -263,7 +266,6 @@
             if (!res.ok) throw new Error(`Status ${res.status}`);
             const data = await res.json();
             
-            // Helper to find text deeply in JSON
             const findText = (d) => {
                 if (!d) return null;
                 if (typeof d === 'string') return d;
@@ -298,6 +300,6 @@
     sendBtn.onclick = sendMessage;
 
     // I. Init
-    renderMessages(); // Render welcome message
+    renderMessages(); 
   }
 })();
