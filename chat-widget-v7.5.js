@@ -1,7 +1,7 @@
 
 (function() {
-  // Atlas Chat Widget v7.5 (Fix Initial Flash/FOUC)
-  console.log("Atlas Chat Widget v7.5 Loaded");
+  // Atlas Chat Widget v7.6 (Session Persistence)
+  console.log("Atlas Chat Widget v7.6 Loaded");
 
   const config = window.AtlasChatConfig || {};
   const WEBHOOK_URL = config.webhookUrl || 'https://n8n.srv1248886.hstgr.cloud/webhook/4091fa09-fb9a-4039-9411-7104d213f601/chat';
@@ -65,13 +65,31 @@
     `;
     document.head.appendChild(style);
 
-    // B. State
-    let isOpen = false;
-    let hasStarted = false;
-    let messages = [{ id: '1', sender: 'bot', text: 'Cześć, jestem Atlas, jak mogę ci dzisiaj pomóc?' }];
+    // B. State & Persistence
+    const STORAGE_KEY_MSGS = 'atlas_chat_messages';
+    const STORAGE_KEY_STARTED = 'atlas_chat_started';
+    const STORAGE_KEY_OPEN = 'atlas_chat_is_open';
+    const SESSION_KEY = 'chat_session_id';
+
+    // Load state from LocalStorage
+    let isOpen = localStorage.getItem(STORAGE_KEY_OPEN) === 'true';
+    let hasStarted = localStorage.getItem(STORAGE_KEY_STARTED) === 'true';
+    
+    let savedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
+    let messages = savedMsgs 
+        ? JSON.parse(savedMsgs) 
+        : [{ id: '1', sender: 'bot', text: 'Cześć, jestem Atlas, jak mogę ci dzisiaj pomóc?' }];
+
     const renderedMsgIds = new Set();
-    const sessionId = localStorage.getItem('chat_session_id') || `sess_${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem('chat_session_id', sessionId);
+    const sessionId = localStorage.getItem(SESSION_KEY) || `sess_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem(SESSION_KEY, sessionId);
+
+    // Helper to save state
+    const persistState = () => {
+        localStorage.setItem(STORAGE_KEY_MSGS, JSON.stringify(messages));
+        localStorage.setItem(STORAGE_KEY_STARTED, hasStarted);
+        localStorage.setItem(STORAGE_KEY_OPEN, isOpen);
+    };
 
     // C. Constants
     const logoUrl = 'https://static.wixstatic.com/shapes/d25ad0_80658c34187f4d3e802abc8225fc5bff.svg';
@@ -104,17 +122,25 @@
     };
 
     // E. Initial Render (Shell)
-    // NOTE: Inline styles are used for visibility/opacity/transform to prevent FOUC (Flash Of Unstyled Content) before Tailwind loads.
+    // Calculate initial styles based on persisted 'isOpen' state to prevent flashing
+    const launcherStyles = isOpen 
+        ? 'opacity: 0; transform: scale(0) rotate(90deg); pointer-events: none;' 
+        : 'opacity: 1; transform: scale(1) rotate(0deg); pointer-events: auto;';
+    
+    const windowStyles = isOpen
+        ? 'opacity: 1; visibility: visible; transform: translateY(0) scale(1); pointer-events: auto;'
+        : 'opacity: 0; visibility: hidden; transform: translateY(12px) scale(0.95); pointer-events: none;';
+
     const widgetContainer = document.createElement('div');
     widgetContainer.id = 'atlas-widget-root';
     widgetContainer.innerHTML = `
         <!-- Launcher Button -->
-        <button id="atlas-launcher" style="opacity: 1; transform: scale(1) rotate(0deg); pointer-events: auto;" class="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-onyx text-white shadow-lg flex items-center justify-center hover:scale-105 hover:bg-onyx-light z-[99999] transition-all duration-500 atlas-spring">
+        <button id="atlas-launcher" style="${launcherStyles}" class="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-onyx text-white shadow-lg flex items-center justify-center hover:scale-105 hover:bg-onyx-light z-[99999] transition-all duration-500 atlas-spring">
           <img src="${logoUrl}" alt="Chat" class="w-7 h-7 object-contain transition-transform duration-500" id="atlas-launcher-icon" />
         </button>
 
         <!-- Main Window -->
-        <div id="atlas-window" style="opacity: 0; visibility: hidden; transform: translateY(12px) scale(0.95); pointer-events: none;" class="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[400px] h-[100dvh] sm:h-[calc(100vh-2rem)] sm:max-h-[700px] bg-gray-50 sm:rounded-[32px] shadow-2xl overflow-hidden z-[99999] flex flex-col font-sans border border-gray-100 transition-all duration-500 atlas-spring origin-bottom-right">
+        <div id="atlas-window" style="${windowStyles}" class="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[400px] h-[100dvh] sm:h-[calc(100vh-2rem)] sm:max-h-[700px] bg-gray-50 sm:rounded-[32px] shadow-2xl overflow-hidden z-[99999] flex flex-col font-sans border border-gray-100 transition-all duration-500 atlas-spring origin-bottom-right">
           
           <!-- Header -->
           <div class="flex items-center justify-between p-4 bg-white border-b border-gray-100 sm:rounded-t-[32px] sticky top-0 z-20">
@@ -178,15 +204,13 @@
     const closeBtn = document.getElementById('atlas-close');
 
     // G. Update View Functions
-    // Manipulate styles directly to avoid class toggling race conditions
     const updateVisibility = () => {
+      persistState(); // Save state on toggle
       if (isOpen) {
-        // Hide launcher
         launcher.style.opacity = '0';
         launcher.style.transform = 'scale(0) rotate(90deg)';
         launcher.style.pointerEvents = 'none';
 
-        // Show window
         windowEl.style.opacity = '1';
         windowEl.style.visibility = 'visible';
         windowEl.style.transform = 'translateY(0) scale(1)';
@@ -194,12 +218,10 @@
         
         setTimeout(scrollToBottom, 100);
       } else {
-        // Show launcher
         launcher.style.opacity = '1';
         launcher.style.transform = 'scale(1) rotate(0deg)';
         launcher.style.pointerEvents = 'auto';
 
-        // Hide window
         windowEl.style.opacity = '0';
         windowEl.style.visibility = 'hidden';
         windowEl.style.transform = 'translateY(12px) scale(0.95)';
@@ -227,6 +249,10 @@
             if (renderedMsgIds.has(msg.id)) return;
             
             const div = document.createElement('div');
+            // Remove animation class for persisted messages to avoid re-animating on page reload
+            // We can check if it's a new message or old one, but for simplicity, we keep animation
+            // or we could remove it if we wanted strict static loading. 
+            // Keeping it for now as it looks nice even on reload, but making it faster might be better.
             div.className = `flex w-full mb-4 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in-up`;
             
             const avatarHtml = msg.sender === 'bot' 
@@ -253,7 +279,7 @@
     // H. Event Handlers
     launcher.onclick = () => { isOpen = true; updateVisibility(); };
     closeBtn.onclick = () => { isOpen = false; updateVisibility(); };
-    startBtn.onclick = () => { hasStarted = true; updateFooter(); };
+    startBtn.onclick = () => { hasStarted = true; updateFooter(); persistState(); };
 
     const sendMessage = async () => {
         const text = inputEl.value.trim();
@@ -261,6 +287,7 @@
         
         inputEl.value = '';
         messages.push({ id: Date.now(), sender: 'user', text });
+        persistState(); // Save user message
         renderMessages();
         
         typingEl.classList.remove('hidden');
@@ -302,6 +329,7 @@
             messages.push({ id: Date.now() + 1, sender: 'bot', text: 'Przepraszamy, wystąpił problem z połączeniem.' });
         }
         
+        persistState(); // Save bot reply
         typingEl.classList.add('hidden');
         renderMessages();
     };
@@ -311,5 +339,10 @@
 
     // I. Init
     renderMessages(); 
+    updateFooter(); // Ensure footer is correct state on load
+    if (isOpen) {
+        // If loaded open, ensure we scroll to bottom immediately
+        setTimeout(scrollToBottom, 50);
+    }
   }
 })();
