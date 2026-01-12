@@ -1,6 +1,6 @@
 
 (function() {
-  console.log("%c Atlas Chat Widget v6.7 (Webhook Update) Loaded ", "background: #111; color: #00ff00");
+  console.log("%c Atlas Chat Widget v7.0 (New Look) Loaded ", "background: #111; color: #00ff00");
 
   // Sprawdzamy czy konfiguracja istnieje
   const config = window.AtlasChatConfig || {};
@@ -92,8 +92,7 @@
     let isOpen = false;
     let hasStarted = false;
     
-    // SESJA: Generowanie unikalnego ID dla każdego użytkownika (przeglądarki)
-    // Dzięki temu n8n wie, że to inna osoba, a historia jest trzymana lokalnie.
+    // SESJA: Unikalne ID per przeglądarka/użytkownik
     const sessionId = localStorage.getItem('chat_session_id') || `sess_${Math.random().toString(36).substr(2, 9)}`;
     localStorage.setItem('chat_session_id', sessionId);
 
