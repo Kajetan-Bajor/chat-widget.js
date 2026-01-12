@@ -1,7 +1,7 @@
 
 (function() {
-  // Atlas Chat Widget v7.4 (Fix Page Scroll Issue)
-  console.log("Atlas Chat Widget v7.4 Loaded");
+  // Atlas Chat Widget v7.5 (Fix Initial Flash/FOUC)
+  console.log("Atlas Chat Widget v7.5 Loaded");
 
   const config = window.AtlasChatConfig || {};
   const WEBHOOK_URL = config.webhookUrl || 'https://n8n.srv1248886.hstgr.cloud/webhook/4091fa09-fb9a-4039-9411-7104d213f601/chat';
@@ -93,7 +93,6 @@
         });
     };
 
-    // FIX: Use scrollTo instead of scrollIntoView to prevent body scroll
     const scrollToBottom = () => {
       const container = document.getElementById('atlas-messages-container');
       if (container) {
@@ -105,16 +104,17 @@
     };
 
     // E. Initial Render (Shell)
+    // NOTE: Inline styles are used for visibility/opacity/transform to prevent FOUC (Flash Of Unstyled Content) before Tailwind loads.
     const widgetContainer = document.createElement('div');
     widgetContainer.id = 'atlas-widget-root';
     widgetContainer.innerHTML = `
         <!-- Launcher Button -->
-        <button id="atlas-launcher" class="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-onyx text-white shadow-lg flex items-center justify-center hover:scale-105 hover:bg-onyx-light z-[99999] transition-all duration-500 atlas-spring">
+        <button id="atlas-launcher" style="opacity: 1; transform: scale(1) rotate(0deg); pointer-events: auto;" class="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-onyx text-white shadow-lg flex items-center justify-center hover:scale-105 hover:bg-onyx-light z-[99999] transition-all duration-500 atlas-spring">
           <img src="${logoUrl}" alt="Chat" class="w-7 h-7 object-contain transition-transform duration-500" id="atlas-launcher-icon" />
         </button>
 
         <!-- Main Window -->
-        <div id="atlas-window" class="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[400px] h-[100dvh] sm:h-[calc(100vh-2rem)] sm:max-h-[700px] bg-gray-50 sm:rounded-[32px] shadow-2xl overflow-hidden z-[99999] flex flex-col font-sans border border-gray-100 transition-all duration-500 atlas-spring origin-bottom-right opacity-0 scale-95 translate-y-12 invisible pointer-events-none">
+        <div id="atlas-window" style="opacity: 0; visibility: hidden; transform: translateY(12px) scale(0.95); pointer-events: none;" class="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[400px] h-[100dvh] sm:h-[calc(100vh-2rem)] sm:max-h-[700px] bg-gray-50 sm:rounded-[32px] shadow-2xl overflow-hidden z-[99999] flex flex-col font-sans border border-gray-100 transition-all duration-500 atlas-spring origin-bottom-right">
           
           <!-- Header -->
           <div class="flex items-center justify-between p-4 bg-white border-b border-gray-100 sm:rounded-t-[32px] sticky top-0 z-20">
@@ -146,7 +146,6 @@
                   </div>
                </div>
             </div>
-            <!-- Removed bottom anchor div as we scroll container directly now -->
           </div>
 
           <!-- Footer -->
@@ -179,21 +178,32 @@
     const closeBtn = document.getElementById('atlas-close');
 
     // G. Update View Functions
+    // Manipulate styles directly to avoid class toggling race conditions
     const updateVisibility = () => {
       if (isOpen) {
-        launcher.classList.add('opacity-0', 'scale-0', 'pointer-events-none', 'rotate-90');
-        launcher.classList.remove('opacity-100', 'scale-100', 'pointer-events-auto', 'rotate-0');
-        
-        windowEl.classList.add('opacity-100', 'scale-100', 'translate-y-0', 'pointer-events-auto', 'visible');
-        windowEl.classList.remove('opacity-0', 'scale-95', 'translate-y-12', 'pointer-events-none', 'invisible');
+        // Hide launcher
+        launcher.style.opacity = '0';
+        launcher.style.transform = 'scale(0) rotate(90deg)';
+        launcher.style.pointerEvents = 'none';
+
+        // Show window
+        windowEl.style.opacity = '1';
+        windowEl.style.visibility = 'visible';
+        windowEl.style.transform = 'translateY(0) scale(1)';
+        windowEl.style.pointerEvents = 'auto';
         
         setTimeout(scrollToBottom, 100);
       } else {
-        launcher.classList.remove('opacity-0', 'scale-0', 'pointer-events-none', 'rotate-90');
-        launcher.classList.add('opacity-100', 'scale-100', 'pointer-events-auto', 'rotate-0');
-        
-        windowEl.classList.remove('opacity-100', 'scale-100', 'translate-y-0', 'pointer-events-auto', 'visible');
-        windowEl.classList.add('opacity-0', 'scale-95', 'translate-y-12', 'pointer-events-none', 'invisible');
+        // Show launcher
+        launcher.style.opacity = '1';
+        launcher.style.transform = 'scale(1) rotate(0deg)';
+        launcher.style.pointerEvents = 'auto';
+
+        // Hide window
+        windowEl.style.opacity = '0';
+        windowEl.style.visibility = 'hidden';
+        windowEl.style.transform = 'translateY(12px) scale(0.95)';
+        windowEl.style.pointerEvents = 'none';
       }
     };
 
