@@ -1,7 +1,8 @@
 
+
 (function() {
-  // Atlas Chat Widget v7.8 (History Feature, 350px Width, Semibold Title)
-  console.log("Atlas Chat Widget v7.8 Loaded");
+  // Atlas Chat Widget v7.9 (History Feature, 370px Width, Semibold Title)
+  console.log("Atlas Chat Widget v7.9 Loaded");
 
   const config = window.AtlasChatConfig || {};
   const WEBHOOK_URL = config.webhookUrl || 'https://n8n.srv1248886.hstgr.cloud/webhook/4091fa09-fb9a-4039-9411-7104d213f601/chat';
@@ -199,7 +200,7 @@
         </button>
 
         <!-- Main Window -->
-        <div id="atlas-window" style="${windowStyles}" class="fixed left-0 right-0 bottom-0 top-[20px] sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[350px] sm:h-[calc(100vh-2rem)] sm:max-h-[700px] bg-gray-50 rounded-t-[32px] sm:rounded-[32px] shadow-2xl overflow-hidden z-[99999] flex flex-col font-sans border border-gray-100 transition-all duration-500 atlas-spring origin-bottom-right">
+        <div id="atlas-window" style="${windowStyles}" class="fixed left-0 right-0 bottom-0 top-[20px] sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[370px] sm:h-[calc(100vh-2rem)] sm:max-h-[700px] bg-gray-50 rounded-t-[32px] sm:rounded-[32px] shadow-2xl overflow-hidden z-[99999] flex flex-col font-sans border border-gray-100 transition-all duration-500 atlas-spring origin-bottom-right">
           
           <!-- Header -->
           <div id="atlas-header" class="flex items-center justify-between p-4 bg-white border-b border-gray-100 sm:rounded-t-[32px] sticky top-0 z-20">
