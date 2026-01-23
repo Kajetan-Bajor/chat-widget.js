@@ -1,7 +1,7 @@
 
 (function() {
-  // Atlas Chat Widget v7.7 (History Feature)
-  console.log("Atlas Chat Widget v7.7 Loaded");
+  // Atlas Chat Widget v7.8 (History Feature, 350px Width, Semibold Title)
+  console.log("Atlas Chat Widget v7.8 Loaded");
 
   const config = window.AtlasChatConfig || {};
   const WEBHOOK_URL = config.webhookUrl || 'https://n8n.srv1248886.hstgr.cloud/webhook/4091fa09-fb9a-4039-9411-7104d213f601/chat';
@@ -302,7 +302,7 @@
         // Only show subtitle in history mode
         const subtitleHtml = isChat ? '' : '<span class="text-xs text-gray-500 leading-tight">Twoje rozmowy</span>';
         
-        // Styles: Medium and larger for Chat, Bold and normal for History
+        // Styles: Semibold and larger for Chat, Bold and normal for History
         const titleClasses = isChat 
             ? 'font-semibold text-lg sm:text-base text-gray-900 leading-tight' 
             : 'font-bold text-gray-900 text-sm leading-tight';
