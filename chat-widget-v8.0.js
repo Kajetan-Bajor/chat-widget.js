@@ -1,8 +1,8 @@
 
 
 (function() {
-  // Atlas Chat Widget v7.9 (History Feature, 370px Width, Semibold Title)
-  console.log("Atlas Chat Widget v7.9 Loaded");
+  // Atlas Chat Widget v8.0 (Formatting Fixes, 370px Width, break-words for links)
+  console.log("Atlas Chat Widget v8.0 Loaded");
 
   const config = window.AtlasChatConfig || {};
   const WEBHOOK_URL = config.webhookUrl || 'https://n8n.srv1248886.hstgr.cloud/webhook/4091fa09-fb9a-4039-9411-7104d213f601/chat';
@@ -64,6 +64,7 @@
       .atlas-link-bot { color: #2563EB; text-decoration: underline; }
       .atlas-link-bot:hover { color: #1E40AF; }
       .atlas-history-item:hover .atlas-delete-btn { opacity: 1; }
+      .text-pretty { text-wrap: pretty; }
     `;
     document.head.appendChild(style);
 
@@ -171,7 +172,7 @@
                 suffix = cleanUrl[cleanUrl.length - 1] + suffix;
                 cleanUrl = cleanUrl.slice(0, -1);
             }
-            return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="${linkClass} break-all">${cleanUrl}</a>${suffix}`;
+            return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="${linkClass} break-words">${cleanUrl}</a>${suffix}`;
         });
     };
 
@@ -423,7 +424,7 @@
             div.innerHTML = `
                 ${avatarHtml}
                 <div class="relative max-w-[85%] sm:max-w-[80%] px-4 py-3 sm:px-5 sm:py-3.5 text-[15px] sm:text-sm leading-relaxed break-words shadow-sm ${bubbleClass}">
-                  <p class="whitespace-pre-wrap">${linkify(msg.text, msg.sender === 'user')}</p>
+                  <p class="whitespace-pre-line text-pretty">${linkify(msg.text, msg.sender === 'user')}</p>
                 </div>
             `;
             els.msgList.appendChild(div);
