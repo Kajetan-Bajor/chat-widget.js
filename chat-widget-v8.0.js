@@ -1,8 +1,8 @@
 
 
 (function() {
-  // Atlas Chat Widget v8.0 (Formatting Fixes, 370px Width, break-words for links)
-  console.log("Atlas Chat Widget v8.0 Loaded");
+  // Atlas Chat Widget v8.2 (No Avatar, Bigger Launcher Icon, Clean Layout)
+  console.log("Atlas Chat Widget v8.2 Loaded");
 
   const config = window.AtlasChatConfig || {};
   const WEBHOOK_URL = config.webhookUrl || 'https://n8n.srv1248886.hstgr.cloud/webhook/4091fa09-fb9a-4039-9411-7104d213f601/chat';
@@ -157,7 +157,7 @@
     loadSessions();
 
     // C. Constants
-    const logoUrl = 'https://static.wixstatic.com/shapes/d25ad0_163bb95953dc485e968697298fc64caf.svg';
+    const logoUrl = 'https://static.wixstatic.com/shapes/d25ad0_455066cddef9437eb97858344844a3d2.svg';
     const zyneLogo = 'https://static.wixstatic.com/shapes/d25ad0_9984db4a72dd458790e546ab1b714ebd.svg';
 
     // D. Helper Functions
@@ -197,7 +197,7 @@
     widgetContainer.innerHTML = `
         <!-- Launcher -->
         <button id="atlas-launcher" style="${launcherStyles}" class="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-t from-[#0E1013] to-[#2A2A32] text-white shadow-lg flex items-center justify-center hover:scale-105 hover:bg-onyx-light z-[99999] transition-all duration-500 atlas-spring">
-          <img src="${logoUrl}" alt="Chat" class="w-6 h-6 object-contain transition-transform duration-500 brightness-0 invert" id="atlas-launcher-icon" />
+          <img src="${logoUrl}" alt="Chat" class="w-8 h-8 object-contain transition-transform duration-500 brightness-0 invert" id="atlas-launcher-icon" />
         </button>
 
         <!-- Main Window -->
@@ -216,13 +216,11 @@
                     <div id="atlas-messages-container" class="flex-1 overflow-y-auto px-4 py-4 atlas-no-scrollbar">
                         <div id="atlas-messages-list"></div>
                         <div id="atlas-typing" class="hidden flex w-full mb-4 justify-start animate-fade-in-up">
-                            <div class="flex-shrink-0 mr-2 mt-auto pb-1">
-                                <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm border border-gray-100">
-                                    <div class="flex space-x-0.5">
+                            <div class="bg-white rounded-3xl rounded-bl-none border border-gray-100 px-4 py-3 shadow-sm">
+                                <div class="flex space-x-0.5">
                                     <div class="w-1 h-1 bg-gray-400 rounded-full animate-bounce"></div>
                                     <div class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
                                     <div class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -414,12 +412,10 @@
             if (renderedIds.has(msg.id)) return;
             const div = document.createElement('div');
             div.className = `flex w-full mb-4 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in-up`;
-            const avatarHtml = msg.sender === 'bot' 
-                ? `<div class="flex-shrink-0 mr-2"><div class="w-8 h-8 rounded-full bg-gradient-to-t from-[#0E1013] to-[#2A2A32] flex items-center justify-center shadow-sm"><img src="${logoUrl}" class="w-4 h-4 object-contain brightness-0 invert" /></div></div>` 
-                : '';
+            const avatarHtml = '';
             const bubbleClass = msg.sender === 'user' 
                 ? 'bg-gradient-to-t from-[#0E1013] to-[#2A2A32] text-white rounded-3xl rounded-br-none' 
-                : 'bg-white text-gray-800 rounded-3xl rounded-tl-none border border-gray-100';
+                : 'bg-white text-gray-800 rounded-3xl rounded-bl-none border border-gray-100';
 
             div.innerHTML = `
                 ${avatarHtml}
